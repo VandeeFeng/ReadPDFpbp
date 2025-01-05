@@ -88,12 +88,12 @@ def save_knowledge_base(knowledge_base: list[str]):
 
 def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], page_num: int) -> list[str]:
     print(colored(f"\n📖 Processing page {page_num + 1}...", "yellow"))
-    
+
     completion = client.beta.chat.completions.parse(
         model=ANALYSIS_MODEL,
         messages=[
             {"role": "system", "content": """Analyze this page as if you're studying from a book. and all your answers must in chinese.
-            
+
             SKIP content if the page contains:
             - Table of contents
             - Chapter listings
@@ -103,7 +103,7 @@ def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], p
             - Publishing details
             - References or bibliography
             - Acknowledgments
-            
+
             DO extract knowledge if the page contains:
             - Preface content that explains important concepts
             - Actual educational content
@@ -113,14 +113,14 @@ def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], p
             - Significant findings or conclusions
             - Methodologies or frameworks
             - Critical analyses or interpretations
-            
+
             For valid content:
             - Set has_content to true
             - Extract detailed, learnable knowledge points
             - Include important quotes or key statements
             - Capture examples with their context
             - Preserve technical terms and definitions
-            
+
             For pages to skip:
             - Set has_content to false
             - Return empty knowledge list"""},
@@ -128,18 +128,18 @@ def process_page(client: OpenAI, page_text: str, current_knowledge: list[str], p
         ],
         response_format=PageContent
     )
-    
+
     result = completion.choices[0].message.parsed
     if result.has_content:
         print(colored(f"✅ Found {len(result.knowledge)} new knowledge points", "green"))
     else:
         print(colored("⏭️  Skipping page (no relevant content)", "yellow"))
-    
+
     updated_knowledge = current_knowledge + (result.knowledge if result.has_content else [])
-    
+
     # Update single knowledge base file
     save_knowledge_base(updated_knowledge)
-    
+
     return updated_knowledge
 
 def load_existing_knowledge() -> list[str]:
@@ -157,13 +157,13 @@ def analyze_knowledge_base(client: OpenAI, knowledge_base: list[str], start_page
     if not knowledge_base:
         print(colored("\n⚠️  Skipping analysis: No knowledge points collected", "yellow"))
         return ""
-        
+
     print(colored("\n🤔 Generating final book analysis...", "cyan"))
     completion = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": """Create a comprehensive summary of the provided content in a concise but detailed way, Explain the concepts of professional terminology，using markdown format.and all your answers must in chinese.
-           
+
             Use markdown formatting:
             - ## for main sections
             - ### for subsections
@@ -172,12 +172,12 @@ def analyze_knowledge_base(client: OpenAI, knowledge_base: list[str], start_page
             - **bold** for emphasis
             - *italic* for terminology
             - > blockquotes for important notes
-            
+
             Return only the markdown summary, nothing else. Do not say 'here is the summary' or anything like that before or after"""},
             {"role": "user", "content": f"Analyze this content:\n" + "\n".join(knowledge_base)}
         ]
     )
-    
+
     print(colored("✨ Analysis generated successfully!", "green"))
     return completion.choices[0].message.content
 
@@ -258,7 +258,7 @@ Press Enter to continue or Ctrl+C to exit...
 # 清理函数
 def clean_directories():
     print(colored("\n🧹 Cleaning directories...", "yellow"))
-    
+
     # 清理摘要目录
     if SUMMARIES_DIR.exists():
         for file in SUMMARIES_DIR.glob("**/*"):
@@ -269,7 +269,7 @@ def clean_directories():
         print(colored("✨ Summaries directory cleaned", "green"))
     else:
         print(colored("📂 No summaries directory to clean", "yellow"))
-    
+
     # 清理知识库文件
     if KNOWLEDGE_DIR.exists():
         for file in KNOWLEDGE_DIR.glob("*.json"):
@@ -309,36 +309,36 @@ def main():
     )
      # Load or initialize knowledge base
     knowledge_base = load_existing_knowledge()
-    
+
     pdf_document = fitz.open(PDF_PATH)
     pages_to_process = TEST_PAGES if TEST_PAGES is not None else pdf_document.page_count
-    
+
     print(colored(f"\n📚 Processing {pages_to_process} pages...", "cyan"))
     for page_num in range(min(pages_to_process, pdf_document.page_count)):
         page = pdf_document[page_num]
         page_text = page.get_text()
-        
+
         knowledge_base = process_page(client, page_text, knowledge_base, page_num)
-        
+
         # Generate interval analysis if ANALYSIS_INTERVAL is set
         if ANALYSIS_INTERVAL:
             is_interval = (page_num + 1) % ANALYSIS_INTERVAL == 0
             is_final_page = page_num + 1 == pages_to_process
-            
+
             if is_interval and not is_final_page:
                 print(colored(f"\n📊 Progress: {page_num + 1}/{pages_to_process} pages processed", "cyan"))
                 interval_start = max(1, page_num - ANALYSIS_INTERVAL + 2)
                 interval_summary = analyze_knowledge_base(client, knowledge_base, start_page=interval_start, end_page=page_num + 1)
-                save_summary(interval_summary, is_final=False, output_dir=current_run_dir, 
+                save_summary(interval_summary, is_final=False, output_dir=current_run_dir,
                            start_page=interval_start, end_page=page_num + 1)
-        
+
         # Always generate final analysis on last page
         if page_num + 1 == pages_to_process:
             print(colored(f"\n📊 Final page ({page_num + 1}/{pages_to_process}) processed", "cyan"))
             final_summary = analyze_knowledge_base(client, knowledge_base, start_page=1, end_page=page_num + 1)
             save_summary(final_summary, is_final=True, output_dir=current_run_dir,
                         start_page=1, end_page=page_num + 1)
-    
+
     print(colored("\n✨ Processing complete! ✨", "green", attrs=['bold']))
 
 if __name__ == "__main__":
