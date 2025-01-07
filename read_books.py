@@ -10,53 +10,75 @@ import shutil
 import argparse
 import os
 
-# need to solve the openAI client problem,because i used openrouter
 
-# 设置命令行参数解析器
+# Set up command line argument parser
 def parse_args():
-    parser = argparse.ArgumentParser(description="Process PDF analysis.")
+    parser = argparse.ArgumentParser(
+        description="PDF Book Analysis Tool - Extract and analyze knowledge from PDF books",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python read_books.py -p book.pdf                    # Basic usage with default settings
+  python read_books.py -p book.pdf -i 10              # Analysis every 10 pages
+  python read_books.py -p book.pdf -c all             # Clean all before processing
+  python read_books.py -p book.pdf -m gpt-4           # Use specific model
+  python read_books.py -p book.pdf -m gpt-4 -am qwen  # Use different models for processing and analysis
+        """
+    )
     parser.add_argument(
         '-p', '--pdf',
         type=str,
         required=True,
-        help="The name of the PDF file"
+        help="Path to the PDF file to analyze"
     )
     parser.add_argument(
         '-i', '--interval',
         type=int,
         default=5,
-        help="The interval for analysis (set to None to skip)"
+        help="Generate analysis every N pages (default: 5, 0 to disable)"
     )
     parser.add_argument(
         '-c', '--clean',
         nargs='?',
         const='all',
         choices=['all', 'k', 's'],
-        help="Clean options: no value or 'all' for everything, 'k' for knowledge base, 's' for summaries"
+        help="Clean before processing: 'all' for everything, 'k' for knowledge base, 's' for summaries"
+    )
+    parser.add_argument(
+        '-m', '--model',
+        type=str,
+        default='qwen2.5:14b',
+        help="Model for main processing (default: qwen2.5:14b)"
+    )
+    parser.add_argument(
+        '-am', '--analysis-model',
+        type=str,
+        default='qwen2.5:14b',
+        help="Model for analysis (default: qwen2.5:14b)"
     )
     return parser.parse_args()
 
-# 检查 pdf_name 参数
+# Validate PDF filename
 def validate_pdf_name(pdf_name):
-    # 确保文件名符合规范并且有 .pdf 扩展名
+    # Ensure filename has .pdf extension
     if not pdf_name.endswith(".pdf"):
         print(f"Error: The file '{pdf_name}' does not have a valid PDF extension. Please provide a valid PDF file.")
         exit(1)
 
-    # 检查文件是否存在
+    # Check if file exists
     if not os.path.isfile(pdf_name):
         print(f"Error: The file '{pdf_name}' does not exist. Please provide a valid file path.")
         exit(1)
 
-# 解析命令行参数
+# Parse command line arguments
 args = parse_args()
-
-# 使用命令行传入的参数
-PDF_NAME = args.pdf
-ANALYSIS_INTERVAL = args.interval
 
 # Configuration Constants
 # PDF_NAME = "UnderstandingDeepLearning_07_02_24_C.pdf"
+PDF_NAME = args.pdf
+ANALYSIS_INTERVAL = args.interval
+MODEL = args.model
+ANALYSIS_MODEL = args.analysis_model
 BASE_DIR = Path("book_analysis") / Path(PDF_NAME).stem
 PDF_DIR = BASE_DIR / "pdfs"
 KNOWLEDGE_DIR = BASE_DIR / "knowledge_bases"
@@ -64,8 +86,6 @@ SUMMARIES_DIR = BASE_DIR / "summaries"
 PDF_PATH = PDF_DIR / PDF_NAME
 OUTPUT_PATH = KNOWLEDGE_DIR / f"{PDF_NAME.replace('.pdf', '_knowledge.json')}"
 # ANALYSIS_INTERVAL = 20  # Set to None to skip interval analyses, or a number (e.g., 10) to generate analysis every N pages
-MODEL = "qwen2.5:14b"
-ANALYSIS_MODEL = "qwen2.5:14b"
 TEST_PAGES = None  # Set to None to process entire book
 
 
@@ -81,7 +101,7 @@ def load_or_create_knowledge_base() -> Dict[str, Any]:
     return {}
 
 def save_knowledge_base(knowledge_base: list[str]):
-    # 生成时间戳
+    # Generate timestamp
     timestamp = datetime.now().strftime("%Y%m%d%H%M")
     output_path = KNOWLEDGE_DIR / f"{PDF_NAME.replace('.pdf', '')}_knowledge.json"
     print(colored(f"💾 Saving knowledge base ({len(knowledge_base)} items)...", "blue"))
@@ -252,22 +272,22 @@ Configuration options:
 - ANALYSIS_INTERVAL: Set to None to skip interval analyses, or a number for analysis every N pages
 - TEST_PAGES: Set to None to process entire book, or a number for partial processing
 
-type --pdf "name.pdf" and --interval 10
+type example: python read_books.py -p "name.pdf" -i 10 -c all -m qwen2.5:14b -am qwen2.5:14b
 
 Press Enter to continue or Ctrl+C to exit...
 """, "cyan"))
 
-# 清理函数
+# Cleanup function
 def clean_directories():
     print(colored("\n🧹 Starting cleanup...", "yellow"))
     
-    # 根据参数决定清理范围
+    # Clean based on parameters
     if args.clean in ['all', 's']:
         if SUMMARIES_DIR.exists():
             for file in SUMMARIES_DIR.glob("**/*"):
                 if file.is_file():
                     file.unlink()
-                elif file.is_dir() and not any(file.iterdir()):
+                elif file.is_dir() and not any(file.iterdir()):  # If directory is empty
                     file.rmdir()
             print(colored("✨ Summaries directory cleaned", "green"))
         else:
@@ -282,6 +302,9 @@ def clean_directories():
             print(colored("📂 No knowledge base directory to clean", "yellow"))
 
 def main():
+    # Record start time
+    start_time = datetime.now()
+    
     try:
         print_instructions()
         input()
@@ -289,13 +312,13 @@ def main():
         print(colored("\n❌ Process cancelled by user", "red"))
         return
 
-    # 如果指定了 clean 参数，先清理目录
+    # Clean directories if specified
     if args.clean:
         clean_directories()
 
     setup_directories()
 
-    # 创建本次运行的时间戳目录
+    # Create timestamp directory for current run
     timestamp = datetime.now().strftime("%Y%m%d%H%M")
     current_run_dir = SUMMARIES_DIR / timestamp
     current_run_dir.mkdir(parents=True, exist_ok=True)
@@ -342,7 +365,21 @@ def main():
             save_summary(final_summary, is_final=True, output_dir=current_run_dir,
                         start_page=1, end_page=page_num + 1)
 
-    print(colored("\n✨ Processing complete! ✨", "green", attrs=['bold']))
+    # Modify end prompt, add time elapsed in English format
+    end_time = datetime.now()
+    duration = end_time - start_time
+    hours, remainder = divmod(duration.total_seconds(), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    time_parts = []
+    if hours > 0:
+        time_parts.append(f"{int(hours)}h")
+    if minutes > 0:
+        time_parts.append(f"{int(minutes)}m")
+    time_parts.append(f"{int(seconds)}s")
+    
+    time_str = " ".join(time_parts)
+    print(colored(f"\n✨ Processing complete! Time elapsed: {time_str} ✨", "green", attrs=['bold']))
 
 if __name__ == "__main__":
     main()
