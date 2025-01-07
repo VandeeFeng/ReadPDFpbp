@@ -16,21 +16,23 @@ import os
 def parse_args():
     parser = argparse.ArgumentParser(description="Process PDF analysis.")
     parser.add_argument(
-        '--pdf',
+        '-p', '--pdf',
         type=str,
         required=True,
         help="The name of the PDF file"
     )
     parser.add_argument(
-        '--interval',
+        '-i', '--interval',
         type=int,
         default=5,
         help="The interval for analysis (set to None to skip)"
     )
     parser.add_argument(
-        '--clean',
-        action='store_true',
-        help="Clean all existing summaries before running"
+        '-c', '--clean',
+        nargs='?',
+        const='all',
+        choices=['all', 'k', 's'],
+        help="Clean options: no value or 'all' for everything, 'k' for knowledge base, 's' for summaries"
     )
     return parser.parse_args()
 
@@ -257,26 +259,27 @@ Press Enter to continue or Ctrl+C to exit...
 
 # 清理函数
 def clean_directories():
-    print(colored("\n🧹 Cleaning directories...", "yellow"))
-
-    # 清理摘要目录
-    if SUMMARIES_DIR.exists():
-        for file in SUMMARIES_DIR.glob("**/*"):
-            if file.is_file():
+    print(colored("\n🧹 Starting cleanup...", "yellow"))
+    
+    # 根据参数决定清理范围
+    if args.clean in ['all', 's']:
+        if SUMMARIES_DIR.exists():
+            for file in SUMMARIES_DIR.glob("**/*"):
+                if file.is_file():
+                    file.unlink()
+                elif file.is_dir() and not any(file.iterdir()):
+                    file.rmdir()
+            print(colored("✨ Summaries directory cleaned", "green"))
+        else:
+            print(colored("📂 No summaries directory to clean", "yellow"))
+    
+    if args.clean in ['all', 'k']:
+        if KNOWLEDGE_DIR.exists():
+            for file in KNOWLEDGE_DIR.glob("*.json"):
                 file.unlink()
-            elif file.is_dir() and not any(file.iterdir()):  # 如果是空目录
-                file.rmdir()
-        print(colored("✨ Summaries directory cleaned", "green"))
-    else:
-        print(colored("📂 No summaries directory to clean", "yellow"))
-
-    # 清理知识库文件
-    if KNOWLEDGE_DIR.exists():
-        for file in KNOWLEDGE_DIR.glob("*.json"):
-            file.unlink()
-        print(colored("✨ Knowledge base files cleaned", "green"))
-    else:
-        print(colored("📂 No knowledge base directory to clean", "yellow"))
+            print(colored("✨ Knowledge base files cleaned", "green"))
+        else:
+            print(colored("📂 No knowledge base directory to clean", "yellow"))
 
 def main():
     try:
