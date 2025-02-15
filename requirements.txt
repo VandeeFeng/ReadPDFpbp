@@ -1,5 +1,7 @@
-pydantic
-openai
-pymupdf
-termcolor
+pydantic>=2.0.0
+openai>=1.0.0
+PyMuPDF>=1.20.0
+termcolor>=2.0.0
+argparse>=1.4.0
+pathlib>=1.0.1
 

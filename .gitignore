@@ -1,0 +1,22 @@
+book_analysis/
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+
+# Virtual Environment
+venv/
+ENV/
+.env 
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -1,136 +1,128 @@
-# 📚 AI reads books: Page-by-Page PDF Knowledge Extractor & Summarizer
+Forked form <https://github.com/echohive42/AI-reads-books-page-by-page> , A  good start to build PDF studying system.
 
-The `read_books.py` script performs an intelligent page-by-page analysis of PDF books, methodically extracting knowledge points and generating progressive summaries at specified intervals. It processes each page individually, allowing for detailed content understanding while maintaining the contextual flow of the book. Below is a detailed explanation of how the script works:
+# PDF智能阅读助手 (ReadPDFpbp)
 
-### Features
+> 一个基于AI的PDF智能阅读和知识提取工具，帮助你更高效地学习和理解PDF文档。
 
-- 📚 Automated PDF book analysis and knowledge extraction
-- 🤖 AI-powered content understanding and summarization
-- 📊 Interval-based progress summaries
-- 💾 Persistent knowledge base storage
-- 📝 Markdown-formatted summaries
-- 🎨 Color-coded terminal output for better visibility
-- 🔄 Resume capability with existing knowledge base
-- ⚙️ Configurable analysis intervals and test modes
-- 🚫 Smart content filtering (skips TOC, index pages, etc.)
-- 📂 Organized directory structure for outputs
+## 🌟 特色功能
 
-## ❤️Join my AI Community & Get 400+ AI Projects & 1000x Cursor Course
+- 📚 自动分页处理PDF文档
+- 🤖 智能识别和跳过无关内容（目录、参考文献等）
+- 💡 自动提取关键知识点
+- 📊 定期生成阶段性总结
+- 📝 生成最终的综合分析报告
+- 🌐 支持中文输出
+- 🔄 断点续传功能（可从上次处理位置继续）
+- 🧹 支持清理历史分析数据
 
-This is one of 400+ fascinating projects in my collection! [Support me on Patreon](https://www.patreon.com/c/echohive42/membership) to get:
+## 📦 项目结构
 
-- 🎯 Access to 400+ AI projects (and growing daily!)
-  - Including advanced projects like [2 Agent Real-time voice template with turn taking](https://www.patreon.com/posts/2-agent-real-you-118330397)
-- 📥 Full source code & detailed explanations
-- 📚 1000x Cursor Course
-- 🎓 Live coding sessions & AMAs
-- 💬 1-on-1 consultations (higher tiers)
-- 🎁 Exclusive discounts on AI tools & platforms (up to $180 value)
+```
+ReadPDFpbp/
+├── read_books.py      # 主程序文件
+├── requirements.txt   # 依赖包列表
+├── book_analysis/    # 分析结果存储目录
+│   └── [书名]/
+│       ├── pdfs/     # PDF文件存储
+│       ├── knowledge_bases/  # 知识库JSON文件
+│       └── summaries/  # 阶段性和最终总结
+└── README.md         # 项目说明文档
+```
 
-## How to Use
+## 🚀 快速开始
 
-1. **Setup**
-   ```bash
-   # Clone the repository
-   git clone [repository-url]
-   cd [repository-name]
+### 环境要求
 
-   # Install requirements
-   pip install -r requirements.txt
-   ```
+- Python 3.8+
+- OpenAI API 密钥或本地 Ollama 环境
 
-2. **Configure**
-   - Place your PDF file in the project root directory
-   - Open `read_books.py` and update the `PDF_NAME` constant with your PDF filename
-   - (Optional) Adjust other constants like `ANALYSIS_INTERVAL` or `TEST_PAGES`
+### 安装步骤
 
-3. **Run**
-   ```bash
-   python read_books.py
-   ```
+1. 克隆仓库：
+```bash
+git clone https://github.com/VandeeFeng/ReadPDFpbp.git
+cd ReadPDFpbp
+```
 
-4. **Output**
-   The script will generate:
-   - `book_analysis/knowledge_bases/`: JSON files containing extracted knowledge
-   - `book_analysis/summaries/`: Markdown files with interval and final summaries
-   - `book_analysis/pdfs/`: Copy of your PDF file
+2. 安装依赖：
+```bash
+pip install -r requirements.txt
+```
 
-5. **Customization Options**
-   - Set `ANALYSIS_INTERVAL = None` to skip interval summaries
-   - Set `TEST_PAGES = None` to process entire book
-   - Adjust `MODEL` and `ANALYSIS_MODEL` for different AI models
+### 使用方法
 
-### Configuration Constants
+基本使用：
+```bash
+python read_books.py --pdf "your_book.pdf" --interval 10
+```
 
-- `PDF_NAME`: The name of the PDF file to be analyzed.
-- `BASE_DIR`: The base directory for the analysis.
-- `PDF_DIR`: Directory where the PDF file is stored.
-- `KNOWLEDGE_DIR`: Directory where the knowledge base will be saved.
-- `SUMMARIES_DIR`: Directory where the summaries will be saved.
-- `PDF_PATH`: Full path to the PDF file.
-- `OUTPUT_PATH`: Path to the knowledge base JSON file.
-- `ANALYSIS_INTERVAL`: Number of pages after which an interval analysis is generated. Set to `None` to skip interval analyses.
-- `MODEL`: The model used for processing pages.
-- `ANALYSIS_MODEL`: The model used for generating analyses.
-- `TEST_PAGES`: Number of pages to process for testing. Set to `None` to process the entire book.
+参数说明：
+- `--pdf`: PDF文件名（必需）
+- `--interval`: 生成阶段性总结的页数间隔（默认5页）
+- `--clean`: 清理已有的分析数据（可选）
 
-### Classes and Functions
+## 🔧 配置选项
 
-#### `PageContent` Class
+### 环境变量配置
 
-A Pydantic model that represents the structure of the response from the OpenAI API for page content analysis. It has two fields:
+根据选择的 API provider，需要设置相应的环境变量：
 
-- `has_content`: A boolean indicating if the page has relevant content.
-- `knowledge`: A list of knowledge points extracted from the page.
+- OpenAI:
+  ```bash
+  export OPENAI_API_KEY=your_api_key_here
+  ```
 
-#### `load_or_create_knowledge_base() -> Dict[str, Any]`
+- OpenRouter:
+  ```bash
+  export OPENROUTER_API_KEY=your_api_key_here
+  ```
 
-Loads the existing knowledge base from the JSON file if it exists. If not, it returns an empty dictionary.
+- Ollama:
+  无需设置环境变量，默认使用本地服务
 
-#### `save_knowledge_base(knowledge_base: list[str])`
+### 命令行参数
 
-Saves the knowledge base to a JSON file. It prints a message indicating the number of items saved.
+在 `read_books.py` 中可以配置：
+- `--pdf/-p`: PDF文件路径
+- `--interval/-i`: 生成阶段性总结的页数间隔（默认5页）
+- `--clean/-c`: 清理已有的分析数据
+- `--provider/-P`: 选择 API provider（ollama/openai/openrouter）
+- `--model/-m`: 使用的 AI 模型
+- `--analysis-model/-am`: 用于分析的 AI 模型
 
-#### `process_page(client: OpenAI, page_text: str, current_knowledge: list[str], page_num: int) -> list[str]`
+示例：
+```bash
+# 使用 OpenAI
+python read_books.py -p "book.pdf" -P openai
 
-Processes a single page of the PDF. It sends the page text to the OpenAI API for analysis and updates the knowledge base with the extracted knowledge points. It also saves the updated knowledge base to a JSON file.
+# 使用 OpenRouter
+python read_books.py -p "book.pdf" -P openrouter
 
-#### `load_existing_knowledge() -> list[str]`
+# 使用本地 Ollama（默认）
+python read_books.py -p "book.pdf"
+```
 
-Loads the existing knowledge base from the JSON file if it exists. If not, it returns an empty list.
+## 📝 输出说明
 
-#### `analyze_knowledge_base(client: OpenAI, knowledge_base: list[str]) -> str`
+1. **知识库文件**：
+   - 格式：JSON
+   - 位置：`book_analysis/[书名]/knowledge_bases/`
+   - 内容：包含提取的所有知识点
 
-Generates a comprehensive summary of the entire knowledge base using the OpenAI API. It returns the summary in markdown format.
+2. **阶段性总结**：
+   - 格式：Markdown
+   - 位置：`book_analysis/[书名]/summaries/[时间戳]/`
+   - 内容：每N页的阶段性总结
 
-#### `setup_directories()`
+3. **最终分析报告**：
+   - 格式：Markdown
+   - 位置：`book_analysis/[书名]/summaries/[时间戳]/`
+   - 内容：整本书的综合分析
 
-Sets up the necessary directories for the analysis. It clears any previously generated files and ensures the PDF file is in the correct location.
 
-#### `save_summary(summary: str, is_final: bool = False)`
+## 🙏 致谢
 
-Saves the generated summary to a markdown file. It creates a file with a proper naming convention based on whether it is a final or interval summary.
+本项目基于 [AI-reads-books-page-by-page](https://github.com/echohive42/AI-reads-books-page-by-page) 改进开发。
 
-#### `print_instructions()`
 
-Prints instructions for using the script. It explains the configuration options and how to run the script.
 
-#### `main()`
-
-The main function that orchestrates the entire process. It sets up directories, loads the knowledge base, processes each page of the PDF, generates interval and final summaries, and saves them.
-
-### How It Works
-
-1. **Setup**: The script sets up the necessary directories and ensures the PDF file is in the correct location.
-2. **Load Knowledge Base**: It loads the existing knowledge base if it exists.
-3. **Process Pages**: It processes each page of the PDF, extracting knowledge points and updating the knowledge base.
-4. **Generate Summaries**: It generates interval summaries based on the `ANALYSIS_INTERVAL` and a final summary after processing all pages.
-5. **Save Results**: It saves the knowledge base and summaries to their respective files.
-
-### Running the Script
-
-1. Place your PDF in the same directory as the script.
-2. Update the `PDF_NAME` constant with your PDF filename.
-3. Run the script. It will process the book, extract knowledge points, and generate summaries.
-
-### Example Usage
